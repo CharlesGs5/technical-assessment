@@ -36,7 +36,7 @@ export default function Column({ column, children, onAddTask }: ColumnProps) {
 
             <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
                 <div className="flex flex-col gap-3">
-                    {ordered}
+                    {children}
                 </div>
             </SortableContext>
 

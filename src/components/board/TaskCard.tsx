@@ -1,6 +1,6 @@
 // src/components/board/TaskCard.tsx
-import { useSortable } from '@dnd-kit/sortable';
-import { useRef, useEffect, useState } from 'react';
+import { useDraggable } from '@dnd-kit/core';
+import { useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { toggleFavorite } from '@/store/slices/boardSlice';
@@ -12,20 +12,13 @@ type TaskCardProps = {
 };
 
 export default function TaskCard({ id, title, onClick }: TaskCardProps) {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
     const dispatch = useDispatch();
     const task = useSelector((state: RootState) => state.board.tasks[id]);
     const downTime = useRef<number>(0);
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        const timeout = setTimeout(() => setMounted(true), 10);
-        return () => clearTimeout(timeout);
-    }, []);
 
     const style: React.CSSProperties = {
         transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-        transition
     };
 
     return (
@@ -47,7 +40,8 @@ export default function TaskCard({ id, title, onClick }: TaskCardProps) {
         >
             <span>{title}</span>
             <button
-                onClick={(e) => {
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => {
                     e.stopPropagation();
                     dispatch(toggleFavorite({ taskId: id }));
                 }}
