@@ -1,85 +1,129 @@
 // src/components/board/Board.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '@/store/store';
+import { addTask, deleteTask, editTask, moveTask, setTaskOrder } from '@/store/slices/boardSlice';
+import { arrayMove } from '@dnd-kit/sortable';
 import Column from './Column';
 import TaskCard from './TaskCard';
-
-const initialColumns = [
-    {
-        id: 'pending',
-        title: 'Pendiente',
-        tasks: [
-            { id: 'task-1', title: 'Tarea 1' },
-            { id: 'task-2', title: 'Tarea 2' }
-        ]
-    },
-    {
-        id: 'in-progress',
-        title: 'En progreso',
-        tasks: [
-            { id: 'task-3', title: 'Tarea 3' }
-        ]
-    },
-    {
-        id: 'done',
-        title: 'Completado',
-        tasks: []
-    }
-];
+import EditTaskModal from '../modals/EditTaskModal';
+import socket from '@/lib/socket';
 
 export default function Board() {
-    const [columns, setColumns] = useState(initialColumns);
+    const board = useSelector((state: RootState) => state.board);
+    const dispatch = useDispatch<AppDispatch>();
+    const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+
+    useEffect(() => {
+        socket.connect();
+
+        socket.on('message', (msg) => {
+            const { type, payload } = msg;
+            switch (type) {
+                case 'task:add': dispatch(addTask(payload)); break;
+                case 'task:edit': dispatch(editTask(payload)); break;
+                case 'task:delete': dispatch(deleteTask(payload)); break;
+                case 'task:move': dispatch(moveTask(payload)); break;
+                case 'task:order': dispatch(setTaskOrder(payload)); break;
+                default: console.warn('Evento WebSocket desconocido:', type);
+            }
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [dispatch]);
+
+    useEffect(() => {
+        localStorage.setItem('ticket-item', JSON.stringify(board));
+    }, [board]);
+
+    const handleAddTask = (columnId: string, taskTitle: string) => {
+        dispatch(addTask({ columnId, title: taskTitle }));
+        socket.emit('message', { type: 'task:add', payload: { columnId, title: taskTitle } });
+    };
+
+    const handleEditTask = (taskId: string, newTitle: string) => {
+        dispatch(editTask({ taskId, newTitle }));
+        socket.emit('message', { type: 'task:edit', payload: { taskId, newTitle } });
+    };
+
+    const handleDeleteTask = (taskId: string) => {
+        dispatch(deleteTask({ taskId }));
+        setEditingTaskId(null);
+        socket.emit('message', { type: 'task:delete', payload: { taskId } });
+    };
 
     const handleDragEnd = (event: any) => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
-        const fromColumnIndex = columns.findIndex((col) =>
-            col.tasks.some((task) => task.id === active.id)
+        const fromColumnId = Object.keys(board.columns).find((colId) =>
+            board.columns[colId].taskIds.includes(active.id)
         );
 
-        const toColumnIndex = columns.findIndex((col) =>
-            col.id === over.id || col.tasks.some((task) => task.id === over.id)
+        const toColumnId = Object.keys(board.columns).find((colId) =>
+            colId === over.id || board.columns[colId].taskIds.includes(over.id)
         );
 
-        // 🚫 Si misma columna y sin movimiento real → no hacer nada
-        if (fromColumnIndex === toColumnIndex) return;
+        if (!fromColumnId || !toColumnId) return;
 
-        const fromTasks = [...columns[fromColumnIndex].tasks];
-        const toTasks = [...columns[toColumnIndex].tasks];
-        const taskIndex = fromTasks.findIndex((task) => task.id === active.id);
-        const [movedTask] = fromTasks.splice(taskIndex, 1);
-        const updatedToTasks = [...toTasks, movedTask];
+        if (fromColumnId === toColumnId) {
+            const taskIds = [...board.columns[fromColumnId].taskIds];
+            const oldIndex = taskIds.indexOf(active.id);
+            const newIndex = taskIds.indexOf(over.id);
 
-        const updatedColumns = [...columns];
-        updatedColumns[fromColumnIndex] = {
-            ...columns[fromColumnIndex],
-            tasks: fromTasks,
-        };
-        updatedColumns[toColumnIndex] = {
-            ...columns[toColumnIndex],
-            tasks: updatedToTasks,
-        };
+            if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                const newTaskIds = arrayMove(taskIds, oldIndex, newIndex);
+                dispatch(setTaskOrder({ columnId: fromColumnId, taskIds: newTaskIds }));
+                socket.emit('message', {
+                    type: 'task:order',
+                    payload: { columnId: fromColumnId, taskIds: newTaskIds },
+                });
+            }
+            return;
+        }
 
-        setColumns(updatedColumns);
+        dispatch(moveTask({ taskId: active.id, fromColumnId, toColumnId }));
+        socket.emit('message', { type: 'task:move', payload: { taskId: active.id, fromColumnId, toColumnId } });
     };
 
     return (
         <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <div className="flex gap-4 overflow-x-auto p-4">
-                {columns.map((column) => (
-                    <SortableContext key={column.id} items={column.tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                        <Column column={column}>
-                            {column.tasks.map((task) => (
-                                <TaskCard key={task.id} id={task.id} title={task.title} />
+                {board.columnOrder.map((columnId) => {
+                    const column = board.columns[columnId];
+                    const tasks = column.taskIds.map((taskId) => board.tasks[taskId]);
+
+                    return (
+                        <Column column={column} onAddTask={handleAddTask} key={column.id}>
+                            {tasks.map((task) => (
+                                <TaskCard
+                                    key={task.id}
+                                    id={task.id}
+                                    title={task.title}
+                                    onClick={() => setEditingTaskId(task.id)}
+                                />
                             ))}
                         </Column>
-                    </SortableContext>
-                ))}
+
+                    );
+                })}
             </div>
+
+            {editingTaskId && (
+                <EditTaskModal
+                    taskId={editingTaskId}
+                    initialTitle={board.tasks[editingTaskId].title}
+                    onSaveAction={handleEditTask}
+                    onDeleteAction={handleDeleteTask}
+                    onCloseAction={() => setEditingTaskId(null)}
+                />
+            )}
         </DndContext>
     );
 }

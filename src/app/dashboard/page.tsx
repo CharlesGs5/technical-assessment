@@ -15,7 +15,7 @@ export default function DashboardPage() {
         const encrypted = localStorage.getItem('auth_token');
 
         if (!encrypted) {
-            router.push('/auth/signin');
+            router.push('/signin');
             return;
         }
 
@@ -24,12 +24,12 @@ export default function DashboardPage() {
             const token = bytes.toString(CryptoJS.enc.Utf8);
 
             if (!token) {
-                router.push('/auth/signin');
+                router.push('/signin');
             } else {
                 setLoading(false);
             }
         } catch {
-            router.push('/auth/signin');
+            router.push('/signin');
         }
     }, [router]);
 
@@ -43,7 +43,7 @@ export default function DashboardPage() {
             <Button
                 onClick={() => {
                     localStorage.removeItem('auth_token');
-                    router.push('/auth/signin');
+                    router.push('/signin');
                 }}
                 className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
             >
