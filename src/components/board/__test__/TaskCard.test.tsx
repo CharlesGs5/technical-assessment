@@ -1,20 +1,47 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import TaskCard from '../TaskCard';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
+import { RootState } from '@/store/store';
+
+const mockStore = configureStore([]);
 
 describe('TaskCard', () => {
-    it('renders the task title', () => {
-        render(<TaskCard id="task-1" title="Tarea de prueba" />);
+    const initialState: RootState = {
+        board: {
+            tasks: {
+                'task-1': { id: 'task-1', title: 'Tarea de prueba', isFavorite: false }
+            },
+            columns: {},
+            columnOrder: []
+        }
+    };
+
+    const store = mockStore(initialState);
+
+    it('renderiza el título correctamente', () => {
+        render(
+            <Provider store={store}>
+                <TaskCard id="task-1" title="Tarea de prueba" />
+            </Provider>
+        );
+
         expect(screen.getByText('Tarea de prueba')).toBeInTheDocument();
     });
 
-    it('calls onClick when clicked brevemente', () => {
-        const handleClick = jest.fn();
-        render(<TaskCard id="task-1" title="Click me" onClick={handleClick} />);
+    it('llama onClick si el click es rápido', () => {
+        const onClickMock = jest.fn();
 
-        const card = screen.getByText('Click me');
+        render(
+            <Provider store={store}>
+                <TaskCard id="task-1" title="Tarea de prueba" onClick={onClickMock} />
+            </Provider>
+        );
+
+        const card = screen.getByText('Tarea de prueba');
         fireEvent.mouseDown(card);
         fireEvent.mouseUp(card);
 
-        expect(handleClick).toHaveBeenCalled();
+        expect(onClickMock).toHaveBeenCalled();
     });
 });

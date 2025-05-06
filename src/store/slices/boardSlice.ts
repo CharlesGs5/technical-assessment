@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { BoardState } from '@/types/board';
-import { nanoid } from 'nanoid';
+import { nanoid } from 'nanoid/non-secure';
 
 const initialState: BoardState = {
     tasks: {},

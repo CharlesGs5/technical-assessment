@@ -1,4 +1,4 @@
-import { ReactNode, useRef } from 'react';
+import {ReactNode, useRef, useState} from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
@@ -48,18 +48,18 @@ const Title = styled.h2`
   }
 `;
 
-const FilterButton = styled.button<{ active?: boolean; color?: string }>`
+const FilterButton = styled.button<{ $active?: boolean; color?: string }>`
   font-size: 0.75rem;
   padding: 0.125rem 0.5rem;
   border-radius: 0.25rem;
   border: 1px solid #d1d5db;
-  background-color: ${({ active, color }) => (active ? color || '#3b82f6' : 'white')};
-  color: ${({ active }) => (active ? 'white' : 'inherit')};
+  background-color: ${({ $active }) => ($active ? '#3b82f6' : 'white')};
+  color: ${({ $active }) => ($active ? 'white' : 'inherit')};
 
   @media (prefers-color-scheme: dark) {
-    background-color: ${({ active }) => (active ? '#facc15' : '#374151')};
+    background-color: ${({ $active }) => ($active ? '#facc15' : '#374151')};
     border-color: #4b5563;
-    color: ${({ active }) => (active ? 'white' : '#d1d5db')};
+    color: ${({ $active }) => ($active ? 'white' : '#d1d5db')};
   }
 `;
 
@@ -103,6 +103,7 @@ export default function Column({
     const { setNodeRef } = useDroppable({ id: column.id });
     const inputRef = useRef<HTMLInputElement>(null);
     const board = useSelector((state: RootState) => state.board);
+    const [error, setError] = useState('');
 
     const handleAdd = () => {
         const value = inputRef.current?.value.trim();
@@ -110,7 +111,7 @@ export default function Column({
 
         const taskTitles = column.taskIds.map((id) => board.tasks[id]?.title.toLowerCase());
         if (taskTitles.includes(value.toLowerCase())) {
-            alert('Ya existe una tarea con ese nombre en esta columna.');
+            setError('Ya existe una tarea con ese nombre en esta columna.');
             return;
         }
 
@@ -123,11 +124,11 @@ export default function Column({
             <Header>
                 <Title>{column.title}</Title>
                 <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    <FilterButton active={filter === 'all'} onClick={() => onFilterChange?.('all')}>
+                    <FilterButton $active={filter === 'all'} onClick={() => onFilterChange?.('all')}>
                         Todas
                     </FilterButton>
                     <FilterButton
-                        active={filter === 'favorites'}
+                        $active={filter === 'favorites'}
                         color="#facc15"
                         onClick={() => onFilterChange?.('favorites')}
                     >
@@ -147,6 +148,7 @@ export default function Column({
                         if (e.key === 'Enter') handleAdd();
                     }}
                 />
+                {error && <p role="alert" style={{ color: 'red', fontSize: '0.875rem' }}>{error}</p>}
                 <AddButton onClick={handleAdd}>+</AddButton>
             </InputRow>
         </Container>

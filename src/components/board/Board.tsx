@@ -12,7 +12,6 @@ import EditTaskModal from '../modals/EditTaskModal';
 import socket from '@/lib/socket';
 import styled from 'styled-components';
 import TAB_ID from "@/lib/tabId";
-import {nanoid} from "nanoid";
 
 const BoardWrapper = styled.div`
   display: flex;
