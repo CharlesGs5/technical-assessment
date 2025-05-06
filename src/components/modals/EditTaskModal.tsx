@@ -1,41 +1,38 @@
 'use client';
 
+import { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 import styled from 'styled-components';
-import { useState, useEffect } from 'react';
 
-const Overlay = styled.div`
+const Backdrop = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
 `;
 
-const ModalContainer = styled.div`
-  background: white;
+const ModalBox = styled.div`
+  background-color: white;
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 0.5rem;
+  width: 90%;
   max-width: 400px;
-  width: 100%;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-`;
 
-const Title = styled.h2`
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
+  @media (prefers-color-scheme: dark) {
+    background-color: #1f2937;
+    color: white;
+  }
 `;
 
 const Input = styled.input`
   width: 100%;
   padding: 0.5rem;
-  margin-bottom: 1rem;
+  border-radius: 0.375rem;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  margin-bottom: 1rem;
 `;
 
 const ButtonGroup = styled.div`
@@ -44,64 +41,88 @@ const ButtonGroup = styled.div`
   gap: 0.5rem;
 `;
 
-const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' }>`
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    background: ${({ variant }) => {
-        switch (variant) {
-            case 'primary': return '#2563eb';
-            case 'danger': return '#dc2626';
-            default: return '#e5e7eb';
-        }
-    }};
-    color: ${({ variant }) => (variant === 'primary' || variant === 'danger' ? 'white' : '#111827')};
+const Button = styled.button<{ variant?: 'danger' | 'secondary' }>`
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  background-color: ${({ variant }) =>
+    variant === 'danger' ? '#dc2626' : variant === 'secondary' ? '#6b7280' : '#2563eb'};
+  color: white;
+
+  &:hover {
+    opacity: 0.9;
+  }
 `;
 
-type EditTaskModalProps = {
+interface Props {
     taskId: string;
     initialTitle: string;
     onSaveAction: (taskId: string, newTitle: string) => void;
+    onDeleteAction: (taskId: string) => void;
     onCloseAction: () => void;
-    onDeleteAction?: (taskId: string) => void;
-};
+}
 
-export default function EditTaskModal({ taskId, initialTitle, onSaveAction, onCloseAction, onDeleteAction }: EditTaskModalProps) {
+export default function EditTaskModal({
+                                          taskId,
+                                          initialTitle,
+                                          onSaveAction,
+                                          onDeleteAction,
+                                          onCloseAction,
+                                      }: Props) {
     const [title, setTitle] = useState(initialTitle);
+    const board = useSelector((state: RootState) => state.board);
 
-    useEffect(() => {
-        setTitle(initialTitle);
-    }, [initialTitle]);
+    const handleSave = () => {
+        let columnId: string | undefined;
 
-    const handleSubmit = () => {
-        if (!title.trim()) return;
+        for (const [colId, colData] of Object.entries(board.columns)) {
+            if (colData.taskIds.includes(taskId)) {
+                columnId = colId;
+                break;
+            }
+        }
+
+        if (!columnId) {
+            alert('No se pudo encontrar la columna de la tarea.');
+            return;
+        }
+
+        const existingTitles = board.columns[columnId].taskIds
+            .filter((id) => id !== taskId)
+            .map((id) => board.tasks[id]?.title.trim().toLowerCase());
+
+        const trimmed = title.trim().toLowerCase();
+
+        if (!trimmed) {
+            alert('El título no puede estar vacío.');
+            return;
+        }
+
+        if (existingTitles.includes(trimmed)) {
+            alert('Ya existe otra tarea con ese nombre en esta columna.');
+            return;
+        }
+
         onSaveAction(taskId, title.trim());
         onCloseAction();
     };
 
-    const handleDelete = () => {
-        if(confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
-            onDeleteAction?.(taskId);
-            onCloseAction();
-        }
-    };
-
     return (
-        <Overlay>
-            <ModalContainer>
-                <Title>Editar tarea</Title>
+        <Backdrop onClick={onCloseAction}>
+            <ModalBox onClick={(e) => e.stopPropagation()}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Editar Tarea</h2>
                 <Input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Título de la tarea"
+                    placeholder="Nuevo título"
                 />
                 <ButtonGroup>
-                    <Button onClick={onCloseAction}>Cancelar</Button>
-                    <Button variant="primary" onClick={handleSubmit}>Guardar</Button>
-                    <Button variant="danger" onClick={handleDelete}>Eliminar</Button>
+                    <Button variant="danger" onClick={() => onDeleteAction(taskId)}>Eliminar</Button>
+                    <Button variant="secondary" onClick={onCloseAction}>Cancelar</Button>
+                    <Button onClick={handleSave}>Guardar</Button>
                 </ButtonGroup>
-            </ModalContainer>
-        </Overlay>
+            </ModalBox>
+        </Backdrop>
     );
 }

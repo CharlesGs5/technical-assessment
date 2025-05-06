@@ -1,6 +1,5 @@
-// src/store/slices/boardSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { BoardState, Task } from '@/types/board';
+import { BoardState } from '@/types/board';
 import { nanoid } from 'nanoid';
 
 const initialState: BoardState = {
@@ -29,8 +28,8 @@ export const boardSlice = createSlice({
     name: 'board',
     initialState,
     reducers: {
-        addTask: (state, action: PayloadAction<{ columnId: string; title: string }>) => {
-            const id = nanoid();
+        addTask: (state, action: PayloadAction<{ columnId: string; title: string; id?: string }>) => {
+            const id = action.payload.id ?? nanoid(); // Usar ID proporcionado o generar uno nuevo
             state.tasks[id] = { id, title: action.payload.title, isFavorite: false };
             state.columns[action.payload.columnId].taskIds.push(id);
         },

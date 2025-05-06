@@ -1,7 +1,8 @@
-// src/components/board/Column.tsx
-import { ReactNode } from 'react';
+import { ReactNode, useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import styled from 'styled-components';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 
 interface ColumnProps {
     column: {
@@ -11,65 +12,143 @@ interface ColumnProps {
     };
     children: ReactNode;
     onAddTask?: (columnId: string, taskTitle: string) => void;
+    filter?: 'all' | 'favorites';
+    onFilterChange?: (filter: 'all' | 'favorites') => void;
 }
 
-export default function Column({ column, children, onAddTask }: ColumnProps) {
+const Container = styled.div`
+  width: 18rem;
+  min-width: 18rem;
+  background-color: #f3f4f6;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+
+  @media (prefers-color-scheme: dark) {
+    background-color: #1f2937;
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+`;
+
+const Title = styled.h2`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+
+  @media (prefers-color-scheme: dark) {
+    color: white;
+  }
+`;
+
+const FilterButton = styled.button<{ active?: boolean; color?: string }>`
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid #d1d5db;
+  background-color: ${({ active, color }) => (active ? color || '#3b82f6' : 'white')};
+  color: ${({ active }) => (active ? 'white' : 'inherit')};
+
+  @media (prefers-color-scheme: dark) {
+    background-color: ${({ active }) => (active ? '#facc15' : '#374151')};
+    border-color: #4b5563;
+    color: ${({ active }) => (active ? 'white' : '#d1d5db')};
+  }
+`;
+
+const TasksWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const InputRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+`;
+
+const Input = styled.input`
+  flex: 1;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid #d1d5db;
+`;
+
+const AddButton = styled.button`
+  background-color: #2563eb;
+  color: white;
+  padding: 0 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+`;
+
+export default function Column({
+                                   column,
+                                   children,
+                                   onAddTask,
+                                   filter = 'all',
+                                   onFilterChange,
+                               }: ColumnProps) {
     const { setNodeRef } = useDroppable({ id: column.id });
+    const inputRef = useRef<HTMLInputElement>(null);
+    const board = useSelector((state: RootState) => state.board);
 
-    // Dividir children en favoritos y no favoritos (espera que cada uno tenga prop id y taskId disponible)
-    const taskElements = Array.isArray(children) ? children : [children];
+    const handleAdd = () => {
+        const value = inputRef.current?.value.trim();
+        if (!value) return;
 
-    const favoriteTasks = taskElements.filter((child: any) => child?.props?.task?.isFavorite);
-    const regularTasks = taskElements.filter((child: any) => !child?.props?.task?.isFavorite);
+        const taskTitles = column.taskIds.map((id) => board.tasks[id]?.title.toLowerCase());
+        if (taskTitles.includes(value.toLowerCase())) {
+            alert('Ya existe una tarea con ese nombre en esta columna.');
+            return;
+        }
 
-    const ordered = [...favoriteTasks, ...regularTasks];
-    const orderedIds = ordered.map((c: any) => c?.props?.id);
+        onAddTask?.(column.id, value);
+        inputRef.current!.value = '';
+    };
 
     return (
-        <div
-            ref={setNodeRef}
-            className="w-72 min-w-[18rem] bg-gray-100 dark:bg-gray-800 p-4 rounded shadow flex flex-col"
-        >
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-                {column.title}
-            </h2>
-
-            <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
-                <div className="flex flex-col gap-3">
-                    {children}
+        <Container ref={setNodeRef}>
+            <Header>
+                <Title>{column.title}</Title>
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <FilterButton active={filter === 'all'} onClick={() => onFilterChange?.('all')}>
+                        Todas
+                    </FilterButton>
+                    <FilterButton
+                        active={filter === 'favorites'}
+                        color="#facc15"
+                        onClick={() => onFilterChange?.('favorites')}
+                    >
+                        ⭐
+                    </FilterButton>
                 </div>
-            </SortableContext>
+            </Header>
 
-            <div className="flex gap-2 mt-4">
-                <input
+            <TasksWrapper>{children}</TasksWrapper>
+
+            <InputRow>
+                <Input
+                    ref={inputRef}
                     type="text"
                     placeholder="Nueva tarea"
-                    className="flex-1 text-sm px-2 py-1 rounded border border-gray-300"
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            const input = e.target as HTMLInputElement;
-                            const value = input.value.trim();
-                            if (value) {
-                                onAddTask?.(column.id, value);
-                                input.value = '';
-                            }
-                        }
+                        if (e.key === 'Enter') handleAdd();
                     }}
                 />
-                <button
-                    onClick={() => {
-                        const input = document.querySelector<HTMLInputElement>(`input[placeholder='Nueva tarea']`);
-                        const value = input?.value.trim();
-                        if (value) {
-                            onAddTask?.(column.id, value);
-                            if (input) input.value = '';
-                        }
-                    }}
-                    className="bg-blue-600 text-white px-2 rounded text-sm"
-                >
-                    +
-                </button>
-            </div>
-        </div>
+                <AddButton onClick={handleAdd}>+</AddButton>
+            </InputRow>
+        </Container>
     );
 }

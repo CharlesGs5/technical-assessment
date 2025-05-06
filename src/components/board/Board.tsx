@@ -1,9 +1,7 @@
-// src/components/board/Board.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { DndContext, closestCenter } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store/store';
 import { addTask, deleteTask, editTask, moveTask, setTaskOrder } from '@/store/slices/boardSlice';
@@ -12,17 +10,32 @@ import Column from './Column';
 import TaskCard from './TaskCard';
 import EditTaskModal from '../modals/EditTaskModal';
 import socket from '@/lib/socket';
+import styled from 'styled-components';
+import TAB_ID from "@/lib/tabId";
+import {nanoid} from "nanoid";
+
+const BoardWrapper = styled.div`
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 1rem;
+`;
 
 export default function Board() {
     const board = useSelector((state: RootState) => state.board);
     const dispatch = useDispatch<AppDispatch>();
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+    const [filters, setFilters] = useState<Record<string, 'all' | 'favorites'>>({});
 
     useEffect(() => {
         socket.connect();
 
-        socket.on('message', (msg) => {
-            const { type, payload } = msg;
+        const handleMessage = (msg: any) => {
+            const { type, payload, meta } = msg;
+            if (meta?.tabId === TAB_ID) return;
+
+            console.log('Mensaje recibido:', msg, 'Mi tabId:', TAB_ID);
+
             switch (type) {
                 case 'task:add': dispatch(addTask(payload)); break;
                 case 'task:edit': dispatch(editTask(payload)); break;
@@ -31,31 +44,70 @@ export default function Board() {
                 case 'task:order': dispatch(setTaskOrder(payload)); break;
                 default: console.warn('Evento WebSocket desconocido:', type);
             }
-        });
+        };
+
+        socket.on('message', handleMessage);
 
         return () => {
+            socket.off('message', handleMessage); // 👈 importante
             socket.disconnect();
         };
     }, [dispatch]);
+
 
     useEffect(() => {
         localStorage.setItem('ticket-item', JSON.stringify(board));
     }, [board]);
 
     const handleAddTask = (columnId: string, taskTitle: string) => {
+        const normalizedNew = taskTitle.trim().toLowerCase();
+
+        const existingTitles = board.columns[columnId].taskIds.map(id =>
+            board.tasks[id]?.title.trim().toLowerCase()
+        );
+
+        if (existingTitles.includes(normalizedNew)) {
+            alert("Ya existe una tarea con ese nombre en esta columna.");
+            return;
+        }
+
         dispatch(addTask({ columnId, title: taskTitle }));
-        socket.emit('message', { type: 'task:add', payload: { columnId, title: taskTitle } });
+        socket.emit('message', {
+            type: 'task:add',
+            payload: { columnId, title: taskTitle },
+            meta: { tabId: TAB_ID }
+        });
     };
 
     const handleEditTask = (taskId: string, newTitle: string) => {
+        const columnId = Object.keys(board.columns).find((colId) =>
+            board.columns[colId].taskIds.includes(taskId)
+        );
+
+        if (!columnId) return;
+
+        const duplicate = board.columns[columnId].taskIds
+            .filter(id => id !== taskId)
+            .map(id => board.tasks[id].title.trim().toLowerCase())
+            .includes(newTitle.trim().toLowerCase());
+
+        if (duplicate) {
+            alert('Ya existe una tarea con ese nombre en esta columna.');
+            return;
+        }
+
         dispatch(editTask({ taskId, newTitle }));
-        socket.emit('message', { type: 'task:edit', payload: { taskId, newTitle } });
+        socket.emit('message', {
+            type: 'task:edit',
+            payload: { taskId, newTitle },
+            meta: { tabId: TAB_ID }
+        });
     };
 
     const handleDeleteTask = (taskId: string) => {
         dispatch(deleteTask({ taskId }));
         setEditingTaskId(null);
-        socket.emit('message', { type: 'task:delete', payload: { taskId } });
+        socket.emit('message', { type: 'task:delete', payload: { taskId }, meta: { tabId: TAB_ID} });
     };
 
     const handleDragEnd = (event: any) => {
@@ -89,18 +141,46 @@ export default function Board() {
         }
 
         dispatch(moveTask({ taskId: active.id, fromColumnId, toColumnId }));
-        socket.emit('message', { type: 'task:move', payload: { taskId: active.id, fromColumnId, toColumnId } });
+        console.log('Emitido:', {
+            type: 'task:move',
+            payload: { taskId: active.id, fromColumnId, toColumnId },
+            meta: { tabId: TAB_ID }
+        });
+
+        socket.emit('message', {
+            type: 'task:move',
+            payload: { taskId: active.id, fromColumnId, toColumnId },
+            meta: { tabId: TAB_ID },
+        });
     };
 
     return (
         <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <div className="flex gap-4 overflow-x-auto p-4">
+            <BoardWrapper>
                 {board.columnOrder.map((columnId) => {
                     const column = board.columns[columnId];
-                    const tasks = column.taskIds.map((taskId) => board.tasks[taskId]);
+                    const filter = filters[columnId] || 'all';
+                    const taskIds = column.taskIds;
+
+                    let tasks = taskIds.map((id) => board.tasks[id]);
+                    if (filter === 'favorites') {
+                        tasks = tasks.filter((task) => task?.isFavorite);
+                    } else {
+                        const favorites = tasks.filter((task) => task?.isFavorite);
+                        const regulars = tasks.filter((task) => !task?.isFavorite);
+                        tasks = [...favorites, ...regulars];
+                    }
 
                     return (
-                        <Column column={column} onAddTask={handleAddTask} key={column.id}>
+                        <Column
+                            column={column}
+                            onAddTask={handleAddTask}
+                            key={column.id}
+                            filter={filter}
+                            onFilterChange={(newFilter) =>
+                                setFilters((prev) => ({ ...prev, [column.id]: newFilter }))
+                            }
+                        >
                             {tasks.map((task) => (
                                 <TaskCard
                                     key={task.id}
@@ -110,10 +190,9 @@ export default function Board() {
                                 />
                             ))}
                         </Column>
-
                     );
                 })}
-            </div>
+            </BoardWrapper>
 
             {editingTaskId && (
                 <EditTaskModal

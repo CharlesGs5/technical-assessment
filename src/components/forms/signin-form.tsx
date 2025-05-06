@@ -1,7 +1,10 @@
 "use client"
 
 import Link from "next/link";
-
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import CryptoJS from 'crypto-js';
+import { ENCRYPTION_KEY } from "@/lib/constants";
 import {
     CardTitle,
     CardDescription,
@@ -10,15 +13,26 @@ import {
     CardFooter,
     Card,
 } from "@/components/ui/card";
-
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import CryptoJS from 'crypto-js';
-import { useRouter } from "next/navigation";
-import { ENCRYPTION_KEY } from "@/lib/constants";
+import styled from "styled-components";
 
+const Wrapper = styled.div`
+    width: 100%;
+    max-width: 28rem;
+`;
+
+const SignUpText = styled.div`
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.875rem;
+
+    a {
+        text-decoration: underline;
+        margin-left: 0.5rem;
+    }
+`;
 
 export function SigninForm() {
     const router = useRouter();
@@ -26,14 +40,17 @@ export function SigninForm() {
     const [password, setPassword] = useState('');
 
     return (
-        <div className="w-full max-w-md">
+        <Wrapper>
             <form onSubmit={
                 async (e) => {
                     e.preventDefault();
 
                     const res = await fetch('https://reqres.in/api/login', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-api-key': 'reqres-free-v1'},
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': 'reqres-free-v1'
+                        },
                         body: JSON.stringify({ email, password })
                     });
 
@@ -53,47 +70,47 @@ export function SigninForm() {
                     router.push('/dashboard');
                 }}>
                 <Card>
-                    <CardHeader className="space-y-1">
+                    <CardHeader>
                         <CardTitle className="text-3xl font-bold">Sign In</CardTitle>
                         <CardDescription>
                             Enter your details to sign in to your account
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="identifier"
-                                name="identifier"
-                                type="text"
-                                placeholder="username or email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                placeholder="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
+                    <CardContent>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <div>
+                                <Label htmlFor="email">Email</Label>
+                                <Input
+                                    id="identifier"
+                                    name="identifier"
+                                    type="text"
+                                    placeholder="username or email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="password">Password</Label>
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    placeholder="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="flex flex-col">
-                        <Button className="w-full">Sign In</Button>
+                    <CardFooter style={{ display: 'flex', flexDirection: 'column' }}>
+                        <Button style={{ width: '100%' }}>Sign In</Button>
                     </CardFooter>
                 </Card>
-                <div className="mt-4 text-center text-sm">
+                <SignUpText>
                     Don&#39;t have an account?
-                    <Link className="underline ml-2" href="signup">
-                        Sign Up
-                    </Link>
-                </div>
+                    <Link href="signup">Sign Up</Link>
+                </SignUpText>
             </form>
-        </div>
+        </Wrapper>
     );
 }

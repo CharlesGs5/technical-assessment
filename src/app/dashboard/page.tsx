@@ -3,9 +3,31 @@
 import { useEffect, useState } from 'react';
 import CryptoJS from 'crypto-js';
 import { useRouter } from 'next/navigation';
-import {Button} from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import { ENCRYPTION_KEY } from '@/lib/constants';
-import Board from "@/components/board/Board";
+import Board from '@/components/board/Board';
+import styled from 'styled-components';
+
+const MainContainer = styled.main`
+  padding: 2rem;
+`;
+
+const Heading = styled.h1`
+  font-size: 1.875rem;
+  font-weight: bold;
+`;
+
+const LogoutButton = styled(Button)`
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #dc2626;
+  color: white;
+  border-radius: 0.375rem;
+
+  &:hover {
+    background-color: #b91c1c;
+  }
+`;
 
 export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
@@ -36,19 +58,18 @@ export default function DashboardPage() {
     if (loading) return <p>Cargando...</p>;
 
     return (
-        <main className="p-8">
-            <h1 className="text-3xl font-bold">Bienvenido al Dashboard</h1>
-            <Board/>
+        <MainContainer>
+            <Heading>Bienvenido al Dashboard</Heading>
+            <Board />
 
-            <Button
+            <LogoutButton
                 onClick={() => {
                     localStorage.removeItem('auth_token');
                     router.push('/signin');
                 }}
-                className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
             >
                 Cerrar sesión
-            </Button>
-        </main>
+            </LogoutButton>
+        </MainContainer>
     );
 }

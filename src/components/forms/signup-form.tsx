@@ -1,7 +1,10 @@
 "use client"
 
 import Link from "next/link";
-
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import CryptoJS from 'crypto-js';
+import { ENCRYPTION_KEY } from "@/lib/constants";
 import {
     CardTitle,
     CardDescription,
@@ -10,14 +13,26 @@ import {
     CardFooter,
     Card,
 } from "@/components/ui/card";
-
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import CryptoJS from 'crypto-js';
-import {useRouter} from "next/navigation";
-import {ENCRYPTION_KEY} from "@/lib/constants";
+import styled from "styled-components";
+
+const Wrapper = styled.div`
+    width: 100%;
+    max-width: 28rem;
+`;
+
+const SignInText = styled.div`
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.875rem;
+
+    a {
+        text-decoration: underline;
+        margin-left: 0.5rem;
+    }
+`;
 
 export function SignupForm() {
     const router = useRouter();
@@ -25,12 +40,11 @@ export function SignupForm() {
     const [password, setPassword] = useState('');
 
     return (
-        <div className="w-full max-w-md">
+        <Wrapper>
             <form onSubmit={
                 async (e) => {
                     e.preventDefault();
 
-                    // 1. Simular latencia aleatoria (500ms a 1500ms)
                     await new Promise(res => setTimeout(res, Math.random() * 1000 + 500));
 
                     try {
@@ -46,6 +60,7 @@ export function SignupForm() {
                             alert(`Error: ${data.error}`);
                             return;
                         }
+
                         const encryptedToken = CryptoJS.AES.encrypt(
                             data.token,
                             ENCRYPTION_KEY
@@ -53,7 +68,6 @@ export function SignupForm() {
 
                         localStorage.setItem('auth_token', encryptedToken);
                         router.push('/dashboard');
-                        // Aquí podrías guardar el token y redirigir
                     } catch (error) {
                         alert('Error de red o servidor');
                         console.error(error);
@@ -61,48 +75,47 @@ export function SignupForm() {
                 }
             }>
                 <Card>
-                    <CardHeader className="space-y-1">
+                    <CardHeader>
                         <CardTitle className="text-3xl font-bold">Sign Up</CardTitle>
                         <CardDescription>
                             Enter your details to create a new account
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                placeholder="name@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                placeholder="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
+                    <CardContent>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <div>
+                                <Label htmlFor="email">Email</Label>
+                                <Input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    placeholder="name@example.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="password">Password</Label>
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    placeholder="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="flex flex-col">
-                        <Button className="w-full">Sign Up</Button>
+                    <CardFooter style={{ display: 'flex', flexDirection: 'column' }}>
+                        <Button style={{ width: '100%' }}>Sign Up</Button>
                     </CardFooter>
                 </Card>
-                <div className="mt-4 text-center text-sm">
+                <SignInText>
                     Have an account?
-                    <Link className="underline ml-2" href="signin">
-                        Sing In
-                    </Link>
-                </div>
+                    <Link href="signin">Sign In</Link>
+                </SignInText>
             </form>
-        </div>
+        </Wrapper>
     );
 }
