@@ -1,8 +1,6 @@
-import {ReactNode, useRef, useState} from 'react';
+import {ReactNode, useRef} from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import styled from 'styled-components';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
 
 interface ColumnProps {
     column: {
