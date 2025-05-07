@@ -75,7 +75,6 @@ describe('SigninForm', () => {
         fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
         await waitFor(() => {
-            // no se debe llamar a fetch
             expect(global.fetch).not.toHaveBeenCalled();
         });
     });

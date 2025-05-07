@@ -32,7 +32,7 @@ const Card = styled.div<{ isFavorite: boolean }>`
 `;
 
 const FavoriteButton = styled.button`
-    color: #facc15; /* Tailwind's yellow-500 */
+    color: #facc15;
     font-size: 0.875rem;
     background: none;
     border: none;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DndContext, closestCenter } from '@dnd-kit/core';
+import {DndContext, closestCenter, DragEndEvent} from '@dnd-kit/core';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store/store';
 import { addTask, deleteTask, editTask, moveTask, setTaskOrder } from '@/store/slices/boardSlice';
@@ -12,6 +12,34 @@ import EditTaskModal from '../modals/EditTaskModal';
 import socket from '@/lib/socket';
 import styled from 'styled-components';
 import TAB_ID from "@/lib/tabId";
+
+type SocketMessage =
+    | {
+    type: 'task:add';
+    payload: { columnId: string; title: string };
+    meta?: { tabId: string };
+}
+    | {
+    type: 'task:edit';
+    payload: { taskId: string; newTitle: string };
+    meta?: { tabId: string };
+}
+    | {
+    type: 'task:delete';
+    payload: { taskId: string };
+    meta?: { tabId: string };
+}
+    | {
+    type: 'task:move';
+    payload: { taskId: string; fromColumnId: string; toColumnId: string };
+    meta?: { tabId: string };
+}
+    | {
+    type: 'task:order';
+    payload: { columnId: string; taskIds: string[] };
+    meta?: { tabId: string };
+};
+
 
 const BoardWrapper = styled.div`
   display: flex;
@@ -29,7 +57,7 @@ export default function Board() {
     useEffect(() => {
         socket.connect();
 
-        const handleMessage = (msg: any) => {
+        const handleMessage = (msg: SocketMessage) => {
             const { type, payload, meta } = msg;
             if (meta?.tabId === TAB_ID) return;
 
@@ -48,7 +76,7 @@ export default function Board() {
         socket.on('message', handleMessage);
 
         return () => {
-            socket.off('message', handleMessage); // 👈 importante
+            socket.off('message', handleMessage);
             socket.disconnect();
         };
     }, [dispatch]);
@@ -104,29 +132,40 @@ export default function Board() {
     };
 
     const handleDeleteTask = (taskId: string) => {
+        const confirmed = window.confirm('¿Estás seguro de que deseas eliminar esta tarea?');
+        if (!confirmed) return;
+
         dispatch(deleteTask({ taskId }));
         setEditingTaskId(null);
-        socket.emit('message', { type: 'task:delete', payload: { taskId }, meta: { tabId: TAB_ID} });
+        socket.emit('message', {
+            type: 'task:delete',
+            payload: { taskId },
+            meta: { tabId: TAB_ID }
+        });
     };
 
-    const handleDragEnd = (event: any) => {
+    const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
-        if (!over || active.id === over.id) return;
+
+        const activeId = active?.id as string;
+        const overId = over?.id as string;
+
+        if (!overId || activeId === overId) return;
 
         const fromColumnId = Object.keys(board.columns).find((colId) =>
-            board.columns[colId].taskIds.includes(active.id)
+            board.columns[colId].taskIds.includes(activeId)
         );
 
         const toColumnId = Object.keys(board.columns).find((colId) =>
-            colId === over.id || board.columns[colId].taskIds.includes(over.id)
+            colId === overId || board.columns[colId].taskIds.includes(overId)
         );
 
         if (!fromColumnId || !toColumnId) return;
 
         if (fromColumnId === toColumnId) {
             const taskIds = [...board.columns[fromColumnId].taskIds];
-            const oldIndex = taskIds.indexOf(active.id);
-            const newIndex = taskIds.indexOf(over.id);
+            const oldIndex = taskIds.indexOf(activeId);
+            const newIndex = taskIds.indexOf(overId);
 
             if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
                 const newTaskIds = arrayMove(taskIds, oldIndex, newIndex);
@@ -139,13 +178,7 @@ export default function Board() {
             return;
         }
 
-        dispatch(moveTask({ taskId: active.id, fromColumnId, toColumnId }));
-        console.log('Emitido:', {
-            type: 'task:move',
-            payload: { taskId: active.id, fromColumnId, toColumnId },
-            meta: { tabId: TAB_ID }
-        });
-
+        dispatch(moveTask({ taskId: activeId, fromColumnId, toColumnId }));
         socket.emit('message', {
             type: 'task:move',
             payload: { taskId: active.id, fromColumnId, toColumnId },

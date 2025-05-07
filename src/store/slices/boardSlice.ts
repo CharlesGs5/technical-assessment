@@ -29,7 +29,7 @@ export const boardSlice = createSlice({
     initialState,
     reducers: {
         addTask: (state, action: PayloadAction<{ columnId: string; title: string; id?: string }>) => {
-            const id = action.payload.id ?? nanoid(); // Usar ID proporcionado o generar uno nuevo
+            const id = action.payload.id ?? nanoid();
             state.tasks[id] = { id, title: action.payload.title, isFavorite: false };
             state.columns[action.payload.columnId].taskIds.push(id);
         },

@@ -1,36 +1,109 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kanban Board App
 
-## Getting Started
+A fully functional Kanban Board application built with **Next.js 15 (App Router)** as a technical frontend challenge.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🚀 Features
+
+- 🔐 Simulated sign in and sign up (using [ReqRes](https://reqres.in))
+- 🧩 Multiple columns: Pending, In Progress, Done
+- ✏️ Create, edit, and delete tasks
+- ⭐ Mark tasks as favorites (pinned at the top of the column)
+- 📌 Drag and drop tasks between columns and reorder within the same column
+- 🕸️ Real-time sync across tabs using WebSockets
+- 💾 Persistent state with `localStorage`
+- 🔍 Filter to show only favorite tasks
+- 🧪 Unit tests with Jest + React Testing Library (50%+ test coverage)
+- 💅 Fully styled with Styled Components
+
+---
+
+---
+
+## 🧠 Technical Overview
+
+### 📁 Project Structure
+
+The application follows a modular structure under `src/`, separating logic by domain:
+
+- `app/`: Next.js App Router entry points
+- `components/`: UI components for the board, modals, and forms
+- `store/`: Redux Toolkit slice for task state
+- `lib/`: Contains WebSocket client, tab ID utility, and constants
+- `types/`: Shared TypeScript definitions
+
+---
+
+### ⚙️ Key Design Decisions
+
+- **App Router** from Next.js was used to structure routes with layouts and loading states.
+- **Redux Toolkit** manages board state globally and immutably.
+- **Styled Components** were chosen to enforce scoped styles and allow dynamic theming.
+- **WebSockets** are integrated via `socket.io-client` for multi-tab synchronization.
+
+---
+
+### 💾 Data Persistence
+
+- Tasks are persisted in `localStorage` under the key `"ticket-item"`.
+- Every change to the board (add, move, delete, edit) triggers an update in `localStorage` using a `useEffect`.
+- On app load, the board state is restored from `localStorage` if available.
+
+---
+
+### 🆔 ID Generation & Cache Strategy
+
+- Task IDs are generated using [`nanoid`](https://github.com/ai/nanoid), ensuring unique, URL-safe, cryptographically strong strings.
+- These IDs are used as:
+    - React keys
+    - WebSocket event targets
+    - Redux task references
+- Since the board state is normalized (`tasks` and `columns`), lookup is efficient and consistent.
+
+---
+
+### 🧱 Advanced Data Structures
+
+To efficiently manage tasks, the board state uses a normalized structure:
+
+```ts
+{
+  tasks: Record<string, Task>,
+  columns: Record<string, { id: string; title: string; taskIds: string[] }>,
+  columnOrder: string[]
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠️ Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- [Next.js 15](https://nextjs.org/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Redux Toolkit](https://redux-toolkit.js.org/)
+- [@dnd-kit](https://dndkit.com/) – Drag & Drop
+- [Styled Components](https://styled-components.com/)
+- [Socket.IO](https://socket.io/)
+- [Jest](https://jestjs.io/)
+- [React Testing Library](https://testing-library.com/)
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## ⚙️ Requirements
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Node.js v20.x or higher
+- npm v9 or higher
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## 📦 Installation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Make sure you are using Node.js v20 or higher:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+
+node -v
+# Expected: v20.x
+
+git clone https://github.com/CharlesGs5/technical-assessment.git
+cd technical-assessment
+npm install

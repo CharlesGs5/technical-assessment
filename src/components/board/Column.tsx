@@ -81,6 +81,7 @@ const Input = styled.input`
   padding: 0.25rem 0.5rem;
   border-radius: 0.375rem;
   border: 1px solid #d1d5db;
+  color: white;
 `;
 
 const AddButton = styled.button`

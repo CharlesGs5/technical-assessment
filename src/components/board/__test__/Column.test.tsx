@@ -16,7 +16,7 @@ const store = mockStore({
 });
 
 beforeEach(() => {
-    window.alert = jest.fn(); // o jest.fn() si usas Jest
+    window.alert = jest.fn();
 });
 
 
