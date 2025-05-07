@@ -103,18 +103,11 @@ export default function Column({
                                }: ColumnProps) {
     const { setNodeRef } = useDroppable({ id: column.id });
     const inputRef = useRef<HTMLInputElement>(null);
-    const board = useSelector((state: RootState) => state.board);
-    const [error, setError] = useState('');
 
     const handleAdd = () => {
         const value = inputRef.current?.value.trim();
         if (!value) return;
 
-        const taskTitles = column.taskIds.map((id) => board.tasks[id]?.title.toLowerCase());
-        if (taskTitles.includes(value.toLowerCase())) {
-            setError('Ya existe una tarea con ese nombre en esta columna.');
-            return;
-        }
 
         onAddTask?.(column.id, value);
         inputRef.current!.value = '';
@@ -149,7 +142,6 @@ export default function Column({
                         if (e.key === 'Enter') handleAdd();
                     }}
                 />
-                {error && <p role="alert" style={{ color: 'red', fontSize: '0.875rem' }}>{error}</p>}
                 <AddButton onClick={handleAdd}>+</AddButton>
             </InputRow>
         </Container>
