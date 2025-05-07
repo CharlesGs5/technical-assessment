@@ -1,4 +1,4 @@
-# Kanban Board App
+# Trello-like Board App
 
 A fully functional Kanban Board application built with **Next.js 15 (App Router)** as a technical frontend challenge.
 
