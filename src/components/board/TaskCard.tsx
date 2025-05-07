@@ -11,8 +11,8 @@ type TaskCardProps = {
     onClick?: () => void;
 };
 
-const Card = styled.div<{ isFavorite: boolean }>`
-    background-color: ${({ isFavorite }) => (isFavorite ? '#fffbe6' : 'white')};
+const Card = styled.div<{ $isFavorite: boolean }>`
+    background-color: ${({ $isFavorite }) => ($isFavorite ? '#fffbe6' : 'white')};
     color: black;
     padding: 0.75rem;
     border-radius: 0.375rem;
@@ -25,7 +25,7 @@ const Card = styled.div<{ isFavorite: boolean }>`
     cursor: move;
 
     @media (prefers-color-scheme: dark) {
-        background-color: ${({ isFavorite }) => (isFavorite ? '#4f4600' : '#374151')};
+        background-color: ${({ $isFavorite }) => ($isFavorite ? '#4f4600' : '#374151')};
         border-color: #4b5563;
         color: white;
     }
@@ -59,7 +59,7 @@ export default function TaskCard({ id, title, onClick }: TaskCardProps) {
             {...listeners}
             {...attributes}
             style={style}
-            isFavorite={!!task.isFavorite}
+            $isFavorite={!!task.isFavorite}
             onMouseDown={() => {
                 downTime.current = Date.now();
             }}
