@@ -19,7 +19,6 @@ A fully functional Kanban Board application built with **Next.js 15 (App Router)
 
 ---
 
----
 
 ## 🧠 Technical Overview
 
