@@ -1,5 +1,5 @@
 export type Task = {
-    isFavorite: any;
+    isFavorite: never;
     id: string;
     title: string;
 };
