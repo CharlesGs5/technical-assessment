@@ -6,6 +6,7 @@ A fully functional Kanban Board application built with **Next.js 15 (App Router)
 
 ## 🚀 Features
 
+- 💾 Real-time URL: https://technical-assessment-theta.vercel.app/signin
 - 🔐 Simulated sign in and sign up (using [ReqRes](https://reqres.in))
 - 🧩 Multiple columns: Pending, In Progress, Done
 - ✏️ Create, edit, and delete tasks
